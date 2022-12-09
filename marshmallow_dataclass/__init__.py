@@ -394,7 +394,10 @@ def _internal_class_schema(
     clazz_frame: Optional[types.FrameType] = None,
     generic_params_to_args: Optional[Tuple[Tuple[type, type], ...]] = None,
 ) -> Type[marshmallow.Schema]:
-    _RECURSION_GUARD.seen_classes[clazz] = clazz.__name__
+    # generic aliases do not have a __name__ prior python 3.10
+    _name = getattr(clazz, "__name__", repr(clazz))
+
+    _RECURSION_GUARD.seen_classes[clazz] = _name
     try:
         fields = _dataclass_fields(clazz)
     except TypeError:  # Not a dataclass
@@ -450,7 +453,7 @@ def _internal_class_schema(
         if field.init or include_non_init
     )
 
-    schema_class = type(clazz.__name__, (_base_schema(clazz, base_schema),), attributes)
+    schema_class = type(_name, (_base_schema(clazz, base_schema),), attributes)
     return cast(Type[marshmallow.Schema], schema_class)
 
 
@@ -469,6 +472,7 @@ def _field_by_supertype(
     metadata: dict,
     base_schema: Optional[Type[marshmallow.Schema]],
     typ_frame: Optional[types.FrameType],
+    generic_params_to_args: Optional[Tuple[Tuple[type, type], ...]] = None,
 ) -> marshmallow.fields.Field:
     """
     Return a new field for fields based on a super field. (Usually spawned from NewType)
@@ -500,6 +504,7 @@ def _field_by_supertype(
             default=default,
             base_schema=base_schema,
             typ_frame=typ_frame,
+            generic_params_to_args=generic_params_to_args,
         )
 
 
@@ -524,6 +529,7 @@ def _field_for_generic_type(
     typ: type,
     base_schema: Optional[Type[marshmallow.Schema]],
     typ_frame: Optional[types.FrameType],
+    generic_params_to_args: Optional[Tuple[Tuple[type, type], ...]] = None,
     **metadata: Any,
 ) -> Optional[marshmallow.fields.Field]:
     """
@@ -537,7 +543,10 @@ def _field_for_generic_type(
 
         if origin in (list, List):
             child_type = field_for_schema(
-                arguments[0], base_schema=base_schema, typ_frame=typ_frame
+                arguments[0],
+                base_schema=base_schema,
+                typ_frame=typ_frame,
+                generic_params_to_args=generic_params_to_args,
             )
             list_type = cast(
                 Type[marshmallow.fields.List],
@@ -552,14 +561,20 @@ def _field_for_generic_type(
             from . import collection_field
 
             child_type = field_for_schema(
-                arguments[0], base_schema=base_schema, typ_frame=typ_frame
+                arguments[0],
+                base_schema=base_schema,
+                typ_frame=typ_frame,
+                generic_params_to_args=generic_params_to_args,
             )
             return collection_field.Sequence(cls_or_instance=child_type, **metadata)
         if origin in (set, Set):
             from . import collection_field
 
             child_type = field_for_schema(
-                arguments[0], base_schema=base_schema, typ_frame=typ_frame
+                arguments[0],
+                base_schema=base_schema,
+                typ_frame=typ_frame,
+                generic_params_to_args=generic_params_to_args,
             )
             return collection_field.Set(
                 cls_or_instance=child_type, frozen=False, **metadata
@@ -568,14 +583,22 @@ def _field_for_generic_type(
             from . import collection_field
 
             child_type = field_for_schema(
-                arguments[0], base_schema=base_schema, typ_frame=typ_frame
+                arguments[0],
+                base_schema=base_schema,
+                typ_frame=typ_frame,
+                generic_params_to_args=generic_params_to_args,
             )
             return collection_field.Set(
                 cls_or_instance=child_type, frozen=True, **metadata
             )
         if origin in (tuple, Tuple):
             children = tuple(
-                field_for_schema(arg, base_schema=base_schema, typ_frame=typ_frame)
+                field_for_schema(
+                    arg,
+                    base_schema=base_schema,
+                    typ_frame=typ_frame,
+                    generic_params_to_args=generic_params_to_args,
+                )
                 for arg in arguments
             )
             tuple_type = cast(
@@ -589,10 +612,16 @@ def _field_for_generic_type(
             dict_type = type_mapping.get(Dict, marshmallow.fields.Dict)
             return dict_type(
                 keys=field_for_schema(
-                    arguments[0], base_schema=base_schema, typ_frame=typ_frame
+                    arguments[0],
+                    base_schema=base_schema,
+                    typ_frame=typ_frame,
+                    generic_params_to_args=generic_params_to_args,
                 ),
                 values=field_for_schema(
-                    arguments[1], base_schema=base_schema, typ_frame=typ_frame
+                    arguments[1],
+                    base_schema=base_schema,
+                    typ_frame=typ_frame,
+                    generic_params_to_args=generic_params_to_args,
                 ),
                 **metadata,
             )
@@ -610,6 +639,7 @@ def _field_for_generic_type(
                 metadata=metadata,
                 base_schema=base_schema,
                 typ_frame=typ_frame,
+                generic_params_to_args=generic_params_to_args,
             )
         from . import union_field
 
@@ -622,6 +652,7 @@ def _field_for_generic_type(
                         metadata={"required": True},
                         base_schema=base_schema,
                         typ_frame=typ_frame,
+                        generic_params_to_args=generic_params_to_args,
                     ),
                 )
                 for subtyp in subtypes
@@ -730,7 +761,9 @@ def field_for_schema(
                 )
         else:
             subtyp = Any
-        return field_for_schema(subtyp, default, metadata, base_schema, typ_frame)
+        return field_for_schema(
+            subtyp, default, metadata, base_schema, typ_frame, generic_params_to_args
+        )
 
     # Generic types
     generic_field = _field_for_generic_type(typ, base_schema, typ_frame, **metadata)
@@ -748,6 +781,7 @@ def field_for_schema(
             metadata=metadata,
             base_schema=base_schema,
             typ_frame=typ_frame,
+            generic_params_to_args=generic_params_to_args,
         )
 
     # enumerations
