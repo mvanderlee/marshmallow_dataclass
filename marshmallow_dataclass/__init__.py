@@ -100,7 +100,8 @@ def dataclass(
     frozen: bool = False,
     base_schema: Optional[Type[marshmallow.Schema]] = None,
     cls_frame: Optional[types.FrameType] = None,
-) -> Type[_U]: ...
+) -> Type[_U]:
+    ...
 
 
 @overload
@@ -113,7 +114,8 @@ def dataclass(
     frozen: bool = False,
     base_schema: Optional[Type[marshmallow.Schema]] = None,
     cls_frame: Optional[types.FrameType] = None,
-) -> Callable[[Type[_U]], Type[_U]]: ...
+) -> Callable[[Type[_U]], Type[_U]]:
+    ...
 
 
 # _cls should never be specified by keyword, so start it with an
@@ -172,13 +174,15 @@ def dataclass(
 
 
 @overload
-def add_schema(_cls: Type[_U]) -> Type[_U]: ...
+def add_schema(_cls: Type[_U]) -> Type[_U]:
+    ...
 
 
 @overload
 def add_schema(
     base_schema: Optional[Type[marshmallow.Schema]] = None,
-) -> Callable[[Type[_U]], Type[_U]]: ...
+) -> Callable[[Type[_U]], Type[_U]]:
+    ...
 
 
 @overload
@@ -186,7 +190,8 @@ def add_schema(
     _cls: Type[_U],
     base_schema: Optional[Type[marshmallow.Schema]] = None,
     cls_frame: Optional[types.FrameType] = None,
-) -> Type[_U]: ...
+) -> Type[_U]:
+    ...
 
 
 def add_schema(_cls=None, base_schema=None, cls_frame=None):
@@ -805,7 +810,9 @@ def field_for_schema(
         nested_schema
         or forward_reference
         or _RECURSION_GUARD.seen_classes.get(typ)
-        or _internal_class_schema(typ, base_schema, typ_frame, generic_params_to_args)  # type: ignore [arg-type]
+        or _internal_class_schema(
+            typ, base_schema, typ_frame, generic_params_to_args  # type: ignore [arg-type]
+        )
     )
 
     return marshmallow.fields.Nested(nested, **metadata)
@@ -873,7 +880,7 @@ def _generic_params_to_args(clazz: type) -> Tuple[Tuple[type, type], ...]:
 
 def _dataclass_type_hints(
     clazz: type,
-    clazz_frame: types.FrameType = None,
+    clazz_frame: Optional[types.FrameType] = None,
     generic_params_to_args: Optional[Tuple[Tuple[type, type], ...]] = None,
 ) -> Mapping[str, type]:
     localns = clazz_frame.f_locals if clazz_frame else None
