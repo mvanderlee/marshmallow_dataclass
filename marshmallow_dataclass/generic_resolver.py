@@ -9,6 +9,7 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    Union,
 )
 
 import typing_inspect
@@ -59,7 +60,7 @@ class _Future(Generic[_U]):
 
     _done: bool
     _result: _U
-    _default: _U | "_Future[_U]"
+    _default: Union[_U, "_Future[_U]"]
 
     def __init__(self, default=NoDefault) -> None:
         self._done = False
