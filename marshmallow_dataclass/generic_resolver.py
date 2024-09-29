@@ -18,6 +18,16 @@ if sys.version_info >= (3, 9):
 else:
     from typing_extensions import Annotated, get_args, get_origin
 
+if sys.version_info >= (3, 13):
+    from typing import NoDefault
+else:
+    from typing import final
+
+    @final
+    class NoDefault:
+        pass
+
+
 _U = TypeVar("_U")
 
 
@@ -25,7 +35,14 @@ class UnboundTypeVarError(TypeError):
     """TypeVar instance can not be resolved to a type spec.
 
     This exception is raised when an unbound TypeVar is encountered.
+    """
 
+
+class InvalidTypeVarDefaultError(TypeError):
+    """TypeVar default can not be resolved to a type spec.
+
+    This exception is raised when an invalid TypeVar default is encountered.
+    This is most likely a scoping error: https://peps.python.org/pep-0696/#scoping-rules
     """
 
 
@@ -42,9 +59,11 @@ class _Future(Generic[_U]):
 
     _done: bool
     _result: _U
+    _default: _U | "_Future[_U]"
 
-    def __init__(self) -> None:
+    def __init__(self, default=NoDefault) -> None:
         self._done = False
+        self._default = default
 
     def done(self) -> bool:
         """Return ``True`` if the value is available"""
@@ -57,6 +76,13 @@ class _Future(Generic[_U]):
         """
         if self.done():
             return self._result
+
+        if self._default is not NoDefault:
+            if isinstance(self._default, _Future):
+                return self._default.result()
+
+            return self._default
+
         raise InvalidStateError("result has not been set")
 
     def set_result(self, result: _U) -> None:
@@ -120,13 +146,35 @@ def _resolve_typevars(clazz: type) -> Dict[type, Dict[TypeVar, _Future]]:
                 ):
                     if isinstance(potential_type, TypeVar):
                         subclass_generic_params_to_args.append((potential_type, future))
+                        default = getattr(potential_type, "__default__", NoDefault)
+                        if default is not None:
+                            future._default = default
                     else:
                         future.set_result(potential_type)
 
                 args_by_class[subclass] = tuple(subclass_generic_params_to_args)
 
             else:
-                args_by_class[subclass] = tuple((arg, _Future()) for arg in args)
+                # PEP-696: Typevar's may be used as defaults, but T1 must be used before T2
+                # https://peps.python.org/pep-0696/#scoping-rules
+                seen_type_args: Dict[TypeVar, _Future] = {}
+                for arg in args:
+                    default = getattr(arg, "__default__", NoDefault)
+                    if default is not None:
+                        if isinstance(default, TypeVar):
+                            if default in seen_type_args:
+                                # We've already seen this TypeVar, Set the default to it's _Future
+                                default = seen_type_args[default]
+
+                            else:
+                                # We haven't seen this yet, according to PEP-696 this is invalid.
+                                raise InvalidTypeVarDefaultError(
+                                    f"{subclass.__name__} has an invalid TypeVar default for field {arg}"
+                                )
+
+                    seen_type_args[arg] = _Future(default=default)
+
+                args_by_class[subclass] = tuple(seen_type_args.items())
 
             parent_class = subclass
 

@@ -6,6 +6,7 @@ import unittest
 from typing_inspect import is_generic_type
 
 import marshmallow.fields
+import pytest
 from marshmallow import ValidationError
 
 from marshmallow_dataclass import (
@@ -344,6 +345,165 @@ class TestGenerics(unittest.TestCase):
 
         with self.assertRaises(ValidationError):
             schema_s.load({"data": 2})
+
+    @pytest.mark.skipif(
+        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+    )
+    def test_generic_default(self):
+        T = typing.TypeVar("T", default=str)
+
+        @dataclasses.dataclass
+        class SimpleGeneric(typing.Generic[T]):
+            data: T
+
+        @dataclasses.dataclass
+        class NestedFixed:
+            data: SimpleGeneric[int]
+
+        @dataclasses.dataclass
+        class NestedGeneric(typing.Generic[T]):
+            data: SimpleGeneric[T]
+
+        self.assertTrue(is_generic_alias_of_dataclass(SimpleGeneric[int]))
+        self.assertFalse(is_generic_alias_of_dataclass(SimpleGeneric))
+
+        schema_s = class_schema(SimpleGeneric)()
+        self.assertEqual(SimpleGeneric(data="a"), schema_s.load({"data": "a"}))
+        self.assertEqual(schema_s.dump(SimpleGeneric(data="a")), {"data": "a"})
+        with self.assertRaises(ValidationError):
+            schema_s.load({"data": 2})
+
+        schema_nested = class_schema(NestedFixed)()
+        self.assertEqual(
+            NestedFixed(data=SimpleGeneric(1)),
+            schema_nested.load({"data": {"data": 1}}),
+        )
+        self.assertEqual(
+            schema_nested.dump(NestedFixed(data=SimpleGeneric(data=1))),
+            {"data": {"data": 1}},
+        )
+        with self.assertRaises(ValidationError):
+            schema_nested.load({"data": {"data": "str"}})
+
+        schema_nested_generic = class_schema(NestedGeneric[int])()
+        self.assertEqual(
+            NestedGeneric(data=SimpleGeneric(1)),
+            schema_nested_generic.load({"data": {"data": 1}}),
+        )
+        self.assertEqual(
+            schema_nested_generic.dump(NestedGeneric(data=SimpleGeneric(data=1))),
+            {"data": {"data": 1}},
+        )
+        with self.assertRaises(ValidationError):
+            schema_nested_generic.load({"data": {"data": "str"}})
+
+    @pytest.mark.skipif(
+        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+    )
+    def test_deep_generic_with_default_overrides(self):
+        T = typing.TypeVar("T", default=bool)
+        U = typing.TypeVar("U", default=int)
+        V = typing.TypeVar("V", default=str)
+        W = typing.TypeVar("W", default=float)
+
+        @dataclasses.dataclass
+        class TestClass(typing.Generic[T, U, V]):
+            pairs: typing.List[typing.Tuple[T, U]]
+            gen: V
+            override: int
+
+        test_schema = class_schema(TestClass)()
+        assert list(test_schema.fields) == ["pairs", "gen", "override"]
+        assert isinstance(test_schema.fields["pairs"], marshmallow.fields.List)
+        assert isinstance(test_schema.fields["pairs"].inner, marshmallow.fields.Tuple)
+        assert isinstance(
+            test_schema.fields["pairs"].inner.tuple_fields[0],
+            marshmallow.fields.Boolean,
+        )
+        assert isinstance(
+            test_schema.fields["pairs"].inner.tuple_fields[1],
+            marshmallow.fields.Integer,
+        )
+
+        assert isinstance(test_schema.fields["gen"], marshmallow.fields.String)
+        assert isinstance(test_schema.fields["override"], marshmallow.fields.Integer)
+
+        # Don't only override typevar, but switch order to further confuse things
+        @dataclasses.dataclass
+        class TestClass2(TestClass[str, W, U]):
+            override: str  # type: ignore  # Want to test that it works, even if incompatible types
+
+        TestAlias = TestClass2[int, T]
+        test_schema2 = class_schema(TestClass2)()
+        assert list(test_schema2.fields) == ["pairs", "gen", "override"]
+        assert isinstance(test_schema2.fields["pairs"], marshmallow.fields.List)
+        assert isinstance(test_schema2.fields["pairs"].inner, marshmallow.fields.Tuple)
+        assert isinstance(
+            test_schema2.fields["pairs"].inner.tuple_fields[0],
+            marshmallow.fields.String,
+        )
+        assert isinstance(
+            test_schema2.fields["pairs"].inner.tuple_fields[1],
+            marshmallow.fields.Float,
+        )
+
+        assert isinstance(test_schema2.fields["gen"], marshmallow.fields.Integer)
+        assert isinstance(test_schema2.fields["override"], marshmallow.fields.String)
+
+        # inherit from alias
+        @dataclasses.dataclass
+        class TestClass3(TestAlias[typing.List[int]]):
+            pass
+
+        test_schema3 = class_schema(TestClass3)()
+        assert list(test_schema3.fields) == ["pairs", "gen", "override"]
+        assert isinstance(test_schema3.fields["pairs"], marshmallow.fields.List)
+        assert isinstance(test_schema3.fields["pairs"].inner, marshmallow.fields.Tuple)
+        assert isinstance(
+            test_schema3.fields["pairs"].inner.tuple_fields[0],
+            marshmallow.fields.String,
+        )
+        assert isinstance(
+            test_schema3.fields["pairs"].inner.tuple_fields[1],
+            marshmallow.fields.Integer,
+        )
+
+        assert isinstance(test_schema3.fields["gen"], marshmallow.fields.List)
+        assert isinstance(test_schema3.fields["gen"].inner, marshmallow.fields.Integer)
+        assert isinstance(test_schema3.fields["override"], marshmallow.fields.String)
+
+        self.assertEqual(
+            test_schema3.load(
+                {"pairs": [("first", "1")], "gen": ["1", 2], "override": "overridden"}
+            ),
+            TestClass3([("first", 1)], [1, 2], "overridden"),
+        )
+
+    @pytest.mark.skipif(
+        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+    )
+    def test_generic_default_recursion(self):
+        T = typing.TypeVar("T", default=str)
+        U = typing.TypeVar("U", default=T)
+        V = typing.TypeVar("V", default=U)
+
+        @dataclasses.dataclass
+        class DefaultGenerics(typing.Generic[T, U, V]):
+            a: T
+            b: U
+            c: V
+
+        test_schema = class_schema(DefaultGenerics)()
+        assert list(test_schema.fields) == ["a", "b", "c"]
+        assert isinstance(test_schema.fields["a"], marshmallow.fields.String)
+        assert isinstance(test_schema.fields["b"], marshmallow.fields.String)
+        assert isinstance(test_schema.fields["c"], marshmallow.fields.String)
+
+        test_schema2 = class_schema(DefaultGenerics[int])()
+        assert list(test_schema2.fields) == ["a", "b", "c"]
+        assert isinstance(test_schema2.fields["a"], marshmallow.fields.Integer)
+        assert isinstance(test_schema2.fields["b"], marshmallow.fields.Integer)
+        assert isinstance(test_schema2.fields["c"], marshmallow.fields.Integer)
 
 
 if __name__ == "__main__":
