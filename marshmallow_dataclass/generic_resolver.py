@@ -236,14 +236,15 @@ def get_generic_dataclass_fields(clazz: type) -> Tuple[dataclasses.Field, ...]:
                 # Either the first time we see this field, or it got overridden
                 # If it's a class we handle it later as a Nested. Nothing to resolve now.
                 new_field = field
-                if not inspect.isclass(field.type) and may_contain_typevars(field.type):
+                field_type: type = field.type  # type: ignore[assignment]
+                if not inspect.isclass(field_type) and may_contain_typevars(field_type):
                     new_field = copy.copy(field)
                     new_field.type = _replace_typevars(
-                        field.type, resolved_typevars[subclass]
+                        field_type, resolved_typevars[subclass]
                     )
-                elif isinstance(field.type, TypeVar):
+                elif isinstance(field_type, TypeVar):
                     new_field = copy.copy(field)
-                    new_field.type = resolved_typevars[subclass][field.type].result()
+                    new_field.type = resolved_typevars[subclass][field_type].result()
 
                 fields[field.name] = (field, new_field)
             except InvalidStateError:

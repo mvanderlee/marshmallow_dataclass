@@ -210,15 +210,16 @@ class TestGenerics(unittest.TestCase):
             override: int
 
         # Don't only override typevar, but switch order to further confuse things
+        # Ignoring 'override' Because I want to test that it works, even if incompatible types
         @dataclasses.dataclass
-        class TestClass2(TestClass[str, W, U]):
-            override: str  # type: ignore  # Want to test that it works, even if incompatible types
+        class TestClass2(TestClass[str, W, U]):  # type: ignore[override]
+            override: str  # type: ignore[override, assignment]
 
-        TestAlias = TestClass2[int, T]
+        TestAlias = TestClass2[int, T]  # type: ignore[override]
 
         # inherit from alias
         @dataclasses.dataclass
-        class TestClass3(TestAlias[typing.List[int]]):
+        class TestClass3(TestAlias[typing.List[int]]):  # type: ignore[override]
             pass
 
         test_schema = class_schema(TestClass3)()
@@ -430,10 +431,11 @@ class TestGenerics(unittest.TestCase):
 
         # Don't only override typevar, but switch order to further confuse things
         @dataclasses.dataclass
-        class TestClass2(TestClass[str, W, U]):
-            override: str  # type: ignore  # Want to test that it works, even if incompatible types
+        class TestClass2(TestClass[str, W, U]):  # type: ignore[override]
+            # Want to test that it works, even if incompatible types
+            override: str  # type: ignore[override, assignment]
 
-        TestAlias = TestClass2[int, T]
+        TestAlias = TestClass2[int, T]  # type: ignore[override]
         test_schema2 = class_schema(TestClass2)()
         assert list(test_schema2.fields) == ["pairs", "gen", "override"]
         assert isinstance(test_schema2.fields["pairs"], marshmallow.fields.List)
@@ -452,7 +454,7 @@ class TestGenerics(unittest.TestCase):
 
         # inherit from alias
         @dataclasses.dataclass
-        class TestClass3(TestAlias[typing.List[int]]):
+        class TestClass3(TestAlias[typing.List[int]]):  # type: ignore[override]
             pass
 
         test_schema3 = class_schema(TestClass3)()
