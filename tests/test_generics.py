@@ -114,6 +114,67 @@ class TestGenerics(unittest.TestCase):
         with self.assertRaises(ValidationError):
             schema_nested_generic.load({"data": {"data": "str"}})
 
+    def test_generic_dataclass_cached(self):
+        T = typing.TypeVar("T")
+
+        @dataclass
+        class SimpleGeneric(typing.Generic[T]):
+            data1: T
+
+        @dataclass
+        class NestedFixed:
+            data2: SimpleGeneric[int]
+
+        @dataclass
+        class NestedGeneric(typing.Generic[T]):
+            data3: SimpleGeneric[T]
+
+        self.assertTrue(is_generic_alias_of_dataclass(SimpleGeneric[int]))
+        self.assertFalse(is_generic_alias_of_dataclass(SimpleGeneric))
+
+        schema_s = class_schema(SimpleGeneric[str])()
+        self.assertEqual(SimpleGeneric(data1="a"), schema_s.load({"data1": "a"}))
+        self.assertEqual(schema_s.dump(SimpleGeneric(data1="a")), {"data1": "a"})
+        with self.assertRaises(ValidationError):
+            schema_s.load({"data1": 2})
+
+        schema_nested = class_schema(NestedFixed)()
+        self.assertEqual(
+            NestedFixed(data2=SimpleGeneric(1)),
+            schema_nested.load({"data2": {"data1": 1}}),
+        )
+        self.assertEqual(
+            schema_nested.dump(NestedFixed(data2=SimpleGeneric(data1=1))),
+            {"data2": {"data1": 1}},
+        )
+        with self.assertRaises(ValidationError):
+            schema_nested.load({"data2": {"data1": "str"}})
+
+        schema_nested_generic = class_schema(NestedGeneric[int])()
+        self.assertEqual(
+            NestedGeneric(data3=SimpleGeneric(1)),
+            schema_nested_generic.load({"data3": {"data1": 1}}),
+        )
+        self.assertEqual(
+            schema_nested_generic.dump(NestedGeneric(data3=SimpleGeneric(data1=1))),
+            {"data3": {"data1": 1}},
+        )
+        with self.assertRaises(ValidationError):
+            schema_nested_generic.load({"data3": {"data1": "str"}})
+
+        # Copy test again so that we trigger a cache hit
+        schema_nested_generic = class_schema(NestedGeneric[int])()
+        self.assertEqual(
+            NestedGeneric(data3=SimpleGeneric(1)),
+            schema_nested_generic.load({"data3": {"data1": 1}}),
+        )
+        self.assertEqual(
+            schema_nested_generic.dump(NestedGeneric(data3=SimpleGeneric(data1=1))),
+            {"data3": {"data1": 1}},
+        )
+        with self.assertRaises(ValidationError):
+            schema_nested_generic.load({"data3": {"data1": "str"}})
+
     def test_generic_dataclass_repeated_fields(self):
         T = typing.TypeVar("T")
 

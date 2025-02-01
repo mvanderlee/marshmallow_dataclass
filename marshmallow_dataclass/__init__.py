@@ -98,6 +98,29 @@ MEMBERS_WHITELIST: Set[str] = {"Meta"}
 MAX_CLASS_SCHEMA_CACHE_SIZE = 1024
 
 
+class LazyGenericSchema:
+    """Exists to cache generic instances"""
+
+    def __init__(self, base_schema, frame):
+        self.base_schema = base_schema
+        self.frame = frame
+
+        self.__resolved_generic_schemas = {}
+
+    def get_schema(self, instance):
+        instance_args = get_args(instance)
+        schema = self.__resolved_generic_schemas.get(instance_args)
+        if schema is None:
+            schema = class_schema(
+                instance,
+                self.base_schema,
+                self.frame,
+            )
+            self.__resolved_generic_schemas[instance_args] = schema
+
+        return schema
+
+
 def _maybe_get_callers_frame(
     cls: type, stacklevel: int = 1
 ) -> Optional[types.FrameType]:
@@ -294,12 +317,17 @@ def add_schema(_cls=None, base_schema=None, cls_frame=None, stacklevel=1):
         else:
             frame = _maybe_get_callers_frame(clazz, stacklevel=stacklevel)
 
-        # noinspection PyTypeHints
-        clazz.Schema = lazy_class_attribute(  # type: ignore
-            partial(class_schema, clazz, base_schema, frame),
-            "Schema",
-            clazz.__name__,
-        )
+        if not typing_inspect.is_generic_type(clazz):
+            # noinspection PyTypeHints
+            clazz.Schema = lazy_class_attribute(  # type: ignore
+                partial(class_schema, clazz, base_schema, frame),
+                "Schema",
+                clazz.__name__,
+            )
+        else:
+            # noinspection PyTypeHints
+            clazz.Schema = LazyGenericSchema(base_schema, frame)  # type: ignore
+
         return clazz
 
     if _cls is None:
@@ -979,10 +1007,15 @@ def _field_for_schema(
     forward_reference = getattr(typ, "__forward_arg__", None)
 
     nested = (
-        nested_schema
-        or forward_reference
-        or _schema_ctx_stack.top.seen_classes.get(typ)
-        or _internal_class_schema(typ, base_schema)  # type: ignore [arg-type]
+        # Pass the type instance. This is required for generics
+        nested_schema.get_schema(typ)
+        if isinstance(nested_schema, LazyGenericSchema)
+        else (
+            nested_schema
+            or forward_reference
+            or _schema_ctx_stack.top.seen_classes.get(typ)
+            or _internal_class_schema(typ, base_schema)  # type: ignore [arg-type]
+        )
     )
 
     return marshmallow.fields.Nested(nested, **metadata)
