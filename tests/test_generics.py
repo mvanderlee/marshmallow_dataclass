@@ -307,9 +307,9 @@ class TestGenerics(unittest.TestCase):
 
         @dataclass
         class AnnotatedValue:
-            emails: Annotated[
-                list[str], GenericList[marshmallow.fields.Email]
-            ] = dataclasses.field(default_factory=lambda: ["default@email.com"])
+            emails: Annotated[list[str], GenericList[marshmallow.fields.Email]] = (
+                dataclasses.field(default_factory=lambda: ["default@email.com"])
+            )
 
         schema = AnnotatedValue.Schema()  # type: ignore[attr-defined]
 

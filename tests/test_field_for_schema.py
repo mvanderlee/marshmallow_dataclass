@@ -254,8 +254,7 @@ class TestFieldForSchema(unittest.TestCase):
         ]
         for base_type, marshmallow_field, schema in type_mapping:
 
-            class MyType(marshmallow_field):
-                ...  # noqa: E701
+            class MyType(marshmallow_field): ...  # noqa: E701
 
             self.assertIsInstance(field_for_schema(schema), marshmallow_field)
 
