@@ -1,9 +1,9 @@
 # marshmallow-dataclass
 
-[![Test Workflow Status (master branch)](https://img.shields.io/github/actions/workflow/status/lovasoa/marshmallow_dataclass/python-package.yml?branch=master&label=tests)](https://github.com/lovasoa/marshmallow_dataclass/actions/workflows/python-package.yml)
-[![PyPI version](https://badge.fury.io/py/marshmallow-dataclass.svg)](https://badge.fury.io/py/marshmallow-dataclass)
+[![Test Workflow Status (master branch)](https://img.shields.io/github/actions/workflow/status/mvanderlee/marshmallow_dataclass/python-package.yml?branch=master&label=tests)](https://github.com/mvanderlee/marshmallow_dataclass/actions/workflows/python-package.yml)
+[![PyPI version](https://badge.fury.io/py/marshmallow-dataclass2.svg)](https://badge.fury.io/py/marshmallow-dataclass2)
 [![marshmallow 3 compatible](https://badgen.net/badge/marshmallow/3)](https://marshmallow.readthedocs.io/en/latest/upgrading.html)
-[![download stats](https://img.shields.io/pypi/dm/marshmallow-dataclass.svg)](https://pypistats.org/packages/marshmallow-dataclass)
+[![download stats](https://img.shields.io/pypi/dm/marshmallow-dataclass2.svg)](https://pypistats.org/packages/marshmallow-dataclass2)
 
 Automatic generation of [marshmallow](https://marshmallow.readthedocs.io/) schemas from dataclasses.
 
@@ -11,7 +11,7 @@ Automatic generation of [marshmallow](https://marshmallow.readthedocs.io/) schem
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-import marshmallow_dataclass
+import marshmallow_dataclass2
 import marshmallow.validate
 
 
@@ -28,7 +28,7 @@ class City:
     buildings: List[Building] = field(default_factory=list)
 
 
-city_schema = marshmallow_dataclass.class_schema(City)()
+city_schema = marshmallow_dataclass2.class_schema(City)()
 
 city = city_schema.load(
     {"name": "Paris", "buildings": [{"name": "Eiffel Tower", "height": 324}]}
@@ -48,20 +48,11 @@ Therefore, you can document your APIs in a way that allows you to statically che
 
 ## Installation
 
-This package [is hosted on PyPI](https://pypi.org/project/marshmallow-dataclass/).
+This package [is hosted on PyPI](https://pypi.org/project/marshmallow-dataclass2/).
 
 ```shell
-pip3 install marshmallow-dataclass
+pip3 install "marshmallow-dataclass2"
 ```
-
-```shell
-pip3 install "marshmallow-dataclass"
-```
-
-### marshmallow 2 support
-
-`marshmallow-dataclass` no longer supports marshmallow 2.
-Install `marshmallow_dataclass<6.0` if you need marshmallow 2 compatibility.
 
 ## Usage
 
@@ -73,7 +64,7 @@ class from a [`dataclass`](https://docs.python.org/3/library/dataclasses.html#da
 from dataclasses import dataclass
 from datetime import date
 
-import marshmallow_dataclass
+import marshmallow_dataclass2
 
 
 @dataclass
@@ -82,7 +73,7 @@ class Person:
     birth: date
 
 
-PersonSchema = marshmallow_dataclass.class_schema(Person)
+PersonSchema = marshmallow_dataclass2.class_schema(Person)
 ```
 
 The type of your fields must be either basic 
@@ -91,7 +82,7 @@ The type of your fields must be either basic
 
 ### Union (de)serialization coercion 
 
-Typically the Union type; `Union[X, Y]` means—from a set theory perspective—either `X` or `Y`, i.e., an unordered set, howevever the order of the sub-types defines the precedence when attempting to ether deserialize or serialize the value per [here](https://github.com/lovasoa/marshmallow_dataclass/blob/master/marshmallow_dataclass/union_field.py). 
+Typically the Union type; `Union[X, Y]` means—from a set theory perspective—either `X` or `Y`, i.e., an unordered set, howevever the order of the sub-types defines the precedence when attempting to ether deserialize or serialize the value per [here](https://github.com/mvanderlee/marshmallow_dataclass/blob/master/marshmallow_dataclass2/union_field.py). 
 
 For example, 
 
@@ -107,7 +98,7 @@ class Person:
     age: Union[int, float]
 
 
-PersonSchema = marshmallow_dataclass.class_schema(Person)
+PersonSchema = marshmallow_dataclass2.class_schema(Person)
 PersonSchema().load({"name": "jane", "age": 50.0})
 # => Person(name="jane", age=50)
 ```
@@ -125,7 +116,7 @@ additional metadata should itself be put in its own `metadata` dict:
 
 ```python
 from dataclasses import dataclass, field
-import marshmallow_dataclass
+import marshmallow_dataclass2
 import marshmallow.validate
 
 
@@ -139,18 +130,18 @@ class Person:
     height: float = field(metadata=dict(validate=marshmallow.validate.Range(min=0)))
 
 
-PersonSchema = marshmallow_dataclass.class_schema(Person)
+PersonSchema = marshmallow_dataclass2.class_schema(Person)
 ```
 
 ### `@dataclass` shortcut
 
-`marshmallow_dataclass` provides a `@dataclass` decorator that behaves like the standard library's 
+`marshmallow_dataclass2` provides a `@dataclass` decorator that behaves like the standard library's 
 `@dataclasses.dataclass` and adds a `Schema` attribute with the generated marshmallow
 [Schema](https://marshmallow.readthedocs.io/en/2.x-line/api_reference.html#marshmallow.Schema).
 
 ```python
 # Use marshmallow_dataclass's @dataclass shortcut
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass2 import dataclass
 
 
 @dataclass
@@ -169,7 +160,7 @@ To avoid that, you can declare `Schema` as a [`ClassVar`](https://docs.python.or
 ```python
 from typing import ClassVar, Type
 
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass2 import dataclass
 from marshmallow import Schema
 
 
@@ -201,7 +192,7 @@ class Sample:
     my_custom_list: List[int]
 
 
-SampleSchema = marshmallow_dataclass.class_schema(Sample, base_schema=BaseSchema)
+SampleSchema = marshmallow_dataclass2.class_schema(Sample, base_schema=BaseSchema)
 # SampleSchema now serializes my_custom using the CustomField marshmallow field
 # and serializes my_custom_list using the CustomListField marshmallow field
 ```
@@ -210,7 +201,7 @@ SampleSchema = marshmallow_dataclass.class_schema(Sample, base_schema=BaseSchema
 
 ```python
 import marshmallow
-import marshmallow_dataclass
+import marshmallow_dataclass2
 
 
 class UppercaseSchema(marshmallow.Schema):
@@ -225,16 +216,16 @@ class Sample:
     my_int: int
 
 
-SampleSchema = marshmallow_dataclass.class_schema(Sample, base_schema=UppercaseSchema)
+SampleSchema = marshmallow_dataclass2.class_schema(Sample, base_schema=UppercaseSchema)
 
 SampleSchema().dump(Sample(my_text="warm words", my_int=1))
 # -> {"MY_TEXT": "warm words", "MY_INT": 1}
 ```
 
-You can also pass `base_schema` to `marshmallow_dataclass.dataclass`.
+You can also pass `base_schema` to `marshmallow_dataclass2.dataclass`.
 
 ```python
-@marshmallow_dataclass.dataclass(base_schema=UppercaseSchema)
+@marshmallow_dataclass2.dataclass(base_schema=UppercaseSchema)
 class Sample:
     my_text: str
     my_int: int
@@ -259,7 +250,7 @@ You can also pass a marshmallow field class.
 ```python
 from typing import Annotated
 import marshmallow
-from marshmallow_dataclass import NewType
+from marshmallow_dataclass2 import NewType
 
 Email = Annotated[str, marshmallow.fields.Email]
 ```
@@ -267,7 +258,7 @@ Email = Annotated[str, marshmallow.fields.Email]
 For convenience, some custom types are provided:
 
 ```python
-from marshmallow_dataclass.typing import Email, Url
+from marshmallow_dataclass2.typing import Email, Url
 ```
 
 ### Custom NewType declarations [__deprecated__]
@@ -280,7 +271,7 @@ Keyword arguments to `NewType` are passed to the marshmallow field constructor.
 
 ```python
 import marshmallow.validate
-from marshmallow_dataclass import NewType
+from marshmallow_dataclass2 import NewType
 
 IPv4 = NewType(
     "IPv4", str, validate=marshmallow.validate.Regexp(r"^([0-9]{1,3}\\.){3}[0-9]{1,3}$")
@@ -311,7 +302,7 @@ plugins = marshmallow_dataclass2.mypy
 [`Meta` options](https://marshmallow.readthedocs.io/en/stable/api_reference.html#marshmallow.Schema.Meta) are set the same way as a marshmallow `Schema`.
 
 ```python
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass2 import dataclass
 
 
 @dataclass
