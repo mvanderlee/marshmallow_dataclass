@@ -183,6 +183,23 @@ class TestGenerics(unittest.TestCase):
             test_schema.load({"pairs": [("first", "1")]}), TestClass([("first", 1)])
         )
 
+    @pytest.mark.skipif(
+        sys.version_info < (3, 9), reason="requires python 3.9 or higher"
+    )
+    def test_deep_generic_native(self):
+        T = typing.TypeVar("T")
+        U = typing.TypeVar("U")
+
+        @dataclasses.dataclass
+        class TestClass(typing.Generic[T, U]):
+            pairs: list[tuple[T, U]]
+
+        test_schema = class_schema(TestClass[str, int])()
+
+        self.assertEqual(
+            test_schema.load({"pairs": [("first", "1")]}), TestClass([("first", 1)])
+        )
+
     def test_deep_generic_with_union(self):
         T = typing.TypeVar("T")
         U = typing.TypeVar("U")
@@ -348,7 +365,7 @@ class TestGenerics(unittest.TestCase):
             schema_s.load({"data": 2})
 
     @pytest.mark.skipif(
-        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+        sys.version_info < (3, 13), reason="requires python 3.13 or higher"
     )
     def test_generic_default(self):
         T = typing.TypeVar("T", default=str)
@@ -399,7 +416,7 @@ class TestGenerics(unittest.TestCase):
             schema_nested_generic.load({"data": {"data": "str"}})
 
     @pytest.mark.skipif(
-        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+        sys.version_info < (3, 13), reason="requires python 3.13 or higher"
     )
     def test_deep_generic_with_default_overrides(self):
         T = typing.TypeVar("T", default=bool)
@@ -482,7 +499,7 @@ class TestGenerics(unittest.TestCase):
         )
 
     @pytest.mark.skipif(
-        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+        sys.version_info < (3, 13), reason="requires python 3.13 or higher"
     )
     def test_generic_default_recursion(self):
         T = typing.TypeVar("T", default=str)

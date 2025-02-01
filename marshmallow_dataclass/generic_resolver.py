@@ -1,6 +1,5 @@
 import copy
 import dataclasses
-import inspect
 import sys
 from typing import (
     Dict,
@@ -11,13 +10,17 @@ from typing import (
     TypeVar,
     Union,
 )
-
 import typing_inspect
+import warnings
 
 if sys.version_info >= (3, 9):
     from typing import Annotated, get_args, get_origin
+    from types import GenericAlias
 else:
     from typing_extensions import Annotated, get_args, get_origin
+
+    GenericAlias = type(list)
+
 
 if sys.version_info >= (3, 13):
     from typing import NoDefault
@@ -194,25 +197,27 @@ def _resolve_typevars(clazz: type) -> Dict[type, Dict[TypeVar, _Future]]:
 def _replace_typevars(
     clazz: type, resolved_generics: Optional[Dict[TypeVar, _Future]] = None
 ) -> type:
-    if (
-        not resolved_generics
-        or inspect.isclass(clazz)
-        or not may_contain_typevars(clazz)
-    ):
+    if not resolved_generics or not may_contain_typevars(clazz):
         return clazz
 
-    return clazz.copy_with(  # type: ignore
-        tuple(
-            (
-                _replace_typevars(arg, resolved_generics)
-                if may_contain_typevars(arg)
-                else (
-                    resolved_generics[arg].result() if arg in resolved_generics else arg
-                )
-            )
-            for arg in get_args(clazz)
+    new_args = tuple(
+        (
+            _replace_typevars(arg, resolved_generics)
+            if may_contain_typevars(arg)
+            else (resolved_generics[arg].result() if arg in resolved_generics else arg)
         )
+        for arg in get_args(clazz)
     )
+    # i.e.: typing.List, typing.Dict, but not list, and dict
+    if hasattr(clazz, "copy_with"):
+        return clazz.copy_with(new_args)
+    # i.e.: list, dict - inspired by typing._strip_annotations
+    if sys.version_info >= (3, 9) and isinstance(clazz, GenericAlias):
+        return GenericAlias(clazz.__origin__, new_args)  # type:ignore[return-value]
+
+    # I'm not sure how we'd end up here. But raise a warnings so people can create an issue
+    warnings.warn(f"Unable to replace typevars in {clazz}")
+    return clazz
 
 
 def get_generic_dataclass_fields(clazz: type) -> Tuple[dataclasses.Field, ...]:
@@ -237,7 +242,7 @@ def get_generic_dataclass_fields(clazz: type) -> Tuple[dataclasses.Field, ...]:
                 # If it's a class we handle it later as a Nested. Nothing to resolve now.
                 new_field = field
                 field_type: type = field.type  # type: ignore[assignment]
-                if not inspect.isclass(field_type) and may_contain_typevars(field_type):
+                if may_contain_typevars(field_type):
                     new_field = copy.copy(field)
                     new_field.type = _replace_typevars(
                         field_type, resolved_typevars[subclass]
