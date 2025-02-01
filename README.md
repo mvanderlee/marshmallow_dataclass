@@ -1,9 +1,14 @@
-# marshmallow-dataclass
+# marshmallow-dataclass2
 
-[![Test Workflow Status (master branch)](https://img.shields.io/github/actions/workflow/status/mvanderlee/marshmallow_dataclass/python-package.yml?branch=master&label=tests)](https://github.com/mvanderlee/marshmallow_dataclass/actions/workflows/python-package.yml)
+[![Test Workflow Status (main branch)](https://img.shields.io/github/actions/workflow/status/mvanderlee/marshmallow_dataclass/python-package.yml?branch=main&label=tests)](https://github.com/mvanderlee/marshmallow_dataclass/actions/workflows/python-package.yml)
 [![PyPI version](https://badge.fury.io/py/marshmallow-dataclass2.svg)](https://badge.fury.io/py/marshmallow-dataclass2)
 [![marshmallow 3 compatible](https://badgen.net/badge/marshmallow/3)](https://marshmallow.readthedocs.io/en/latest/upgrading.html)
 [![download stats](https://img.shields.io/pypi/dm/marshmallow-dataclass2.svg)](https://pypistats.org/packages/marshmallow-dataclass2)
+
+
+This is a fork of the [marshmallow-dataclass](https://github.com/lovasoa/marshmallow_dataclass) package with PR [#259] merged. It appears that `marshmallow_dataclass` is an abandoned project.
+
+[#259]: https://github.com/lovasoa/marshmallow_dataclass/pull/259
 
 Automatic generation of [marshmallow](https://marshmallow.readthedocs.io/) schemas from dataclasses.
 
