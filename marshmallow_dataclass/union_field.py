@@ -1,6 +1,7 @@
 import copy
 import inspect
 from typing import List, Tuple, Any, Optional
+import typing
 
 import typeguard
 from marshmallow import fields, Schema, ValidationError
@@ -43,7 +44,9 @@ class Union(fields.Field):
         super().__init__(**kwargs)
         self.union_fields = union_fields
 
-    def _bind_to_schema(self, field_name: str, schema: Schema) -> None:
+    def _bind_to_schema(
+        self, field_name: str, schema: typing.Union[Schema, fields.Field]
+    ) -> None:
         super()._bind_to_schema(field_name, schema)
         new_union_fields = []
         for typ, field in self.union_fields:
