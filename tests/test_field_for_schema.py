@@ -4,20 +4,21 @@ import sys
 import typing
 import unittest
 from enum import Enum
-from typing import Dict, Optional, Union, Any, List, Tuple
+from typing import Any, Optional, Union
 
 try:
     from typing import Final, Literal  # type: ignore[attr-defined]
 except ImportError:
-    from typing_extensions import Final, Literal  # type: ignore[assignment]
+    from typing_extensions import Literal  # type: ignore[assignment]
+    from typing import Final
 
-from marshmallow import fields, Schema, validate
+from marshmallow import Schema, fields, validate
 
-from marshmallow_dataclass import (
-    field_for_schema,
-    dataclass,
-    union_field,
+from marshmallow_dataclass2 import (
     collection_field,
+    dataclass,
+    field_for_schema,
+    union_field,
 )
 
 
@@ -49,7 +50,7 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_dict_from_typing(self):
         self.assertFieldsEqual(
-            field_for_schema(Dict[str, float]),
+            field_for_schema(dict[str, float]),
             fields.Dict(
                 keys=fields.String(required=True),
                 values=fields.Float(required=True),
@@ -59,7 +60,7 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_dict_from_typing_wo_args(self):
         self.assertFieldsEqual(
-            field_for_schema(Dict),
+            field_for_schema(dict),
             fields.Dict(
                 keys=fields.Raw(required=True, allow_none=True),
                 values=fields.Raw(required=True, allow_none=True),
@@ -79,13 +80,13 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_list_from_typing(self):
         self.assertFieldsEqual(
-            field_for_schema(List[int]),
+            field_for_schema(list[int]),
             fields.List(fields.Integer(required=True), required=True),
         )
 
     def test_list_from_typing_wo_args(self):
         self.assertFieldsEqual(
-            field_for_schema(List),
+            field_for_schema(list),
             fields.List(
                 fields.Raw(required=True, allow_none=True),
                 required=True,
@@ -247,14 +248,14 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_override_container_type_with_type_mapping(self):
         type_mapping = [
-            (List, fields.List, List[int]),
-            (Dict, fields.Dict, Dict[str, int]),
-            (Tuple, fields.Tuple, Tuple[int, str, bytes]),
+            (list, fields.List, list[int]),
+            (dict, fields.Dict, dict[str, int]),
+            (tuple, fields.Tuple, tuple[int, str, bytes]),
         ]
         for base_type, marshmallow_field, schema in type_mapping:
 
             class MyType(marshmallow_field):
-                ...
+                ...  # noqa: E701
 
             self.assertIsInstance(field_for_schema(schema), marshmallow_field)
 
@@ -293,7 +294,7 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_homogeneous_tuple_from_typing(self):
         self.assertFieldsEqual(
-            field_for_schema(Tuple[str, ...]),
+            field_for_schema(tuple[str, ...]),
             collection_field.Sequence(fields.String(required=True), required=True),
         )
 
@@ -306,7 +307,7 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_set_from_typing(self):
         self.assertFieldsEqual(
-            field_for_schema(typing.Set[str]),
+            field_for_schema(set[str]),
             collection_field.Set(
                 fields.String(required=True),
                 frozen=False,
@@ -316,7 +317,7 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_set_from_typing_wo_args(self):
         self.assertFieldsEqual(
-            field_for_schema(typing.Set),
+            field_for_schema(set),
             collection_field.Set(
                 cls_or_instance=fields.Raw(required=True, allow_none=True),
                 frozen=False,
@@ -336,7 +337,7 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_frozenset_from_typing(self):
         self.assertFieldsEqual(
-            field_for_schema(typing.FrozenSet[int]),
+            field_for_schema(frozenset[int]),
             collection_field.Set(
                 fields.Integer(required=True),
                 frozen=True,
@@ -346,7 +347,7 @@ class TestFieldForSchema(unittest.TestCase):
 
     def test_frozenset_from_typing_wo_args(self):
         self.assertFieldsEqual(
-            field_for_schema(typing.FrozenSet),
+            field_for_schema(frozenset),
             collection_field.Set(
                 cls_or_instance=fields.Raw(required=True, allow_none=True),
                 frozen=True,

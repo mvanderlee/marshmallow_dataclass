@@ -2,12 +2,12 @@ import unittest
 
 import marshmallow
 
-import marshmallow_dataclass
+import marshmallow_dataclass2
 
 
 # Regression test for https://github.com/lovasoa/marshmallow_dataclass/issues/75
 class TestPostLoad(unittest.TestCase):
-    @marshmallow_dataclass.dataclass
+    @marshmallow_dataclass2.dataclass
     class Named:
         first_name: str
         last_name: str

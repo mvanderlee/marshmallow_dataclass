@@ -5,9 +5,9 @@ from mypy import nodes
 from mypy.plugin import DynamicClassDefContext, Plugin
 from mypy.plugins import dataclasses
 
-import marshmallow_dataclass
+import marshmallow_dataclass2
 
-_NEW_TYPE_SIG = inspect.signature(marshmallow_dataclass.NewType)
+_NEW_TYPE_SIG = inspect.signature(marshmallow_dataclass2.NewType)
 
 
 def plugin(version: str) -> Type[Plugin]:
@@ -18,19 +18,19 @@ class MarshmallowDataclassPlugin(Plugin):
     def get_dynamic_class_hook(
         self, fullname: str
     ) -> Optional[Callable[[DynamicClassDefContext], None]]:
-        if fullname == "marshmallow_dataclass.NewType":
+        if fullname == "marshmallow_dataclass2.NewType":
             return new_type_hook
         return None
 
     def get_class_decorator_hook(self, fullname: str):
-        if fullname == "marshmallow_dataclass.dataclass":
+        if fullname == "marshmallow_dataclass2.dataclass":
             return dataclasses.dataclass_class_maker_callback
         return None
 
 
 def new_type_hook(ctx: DynamicClassDefContext) -> None:
     """
-    Dynamic class hook for :func:`marshmallow_dataclass.NewType`.
+    Dynamic class hook for :func:`marshmallow_dataclass2.NewType`.
 
     Uses the type of the ``typ`` argument.
     """

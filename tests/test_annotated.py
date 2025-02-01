@@ -1,16 +1,10 @@
-import sys
 import unittest
-from typing import Optional
+from typing import Annotated, Optional
 
 import marshmallow
 import marshmallow.fields
 
-from marshmallow_dataclass import dataclass
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated
-else:
-    from typing_extensions import Annotated
+from marshmallow_dataclass2 import dataclass
 
 
 class TestAnnotatedField(unittest.TestCase):

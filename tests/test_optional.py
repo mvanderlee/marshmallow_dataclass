@@ -4,7 +4,7 @@ from typing import Optional
 
 import marshmallow
 
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass2 import dataclass
 
 
 class TestOptionalField(unittest.TestCase):

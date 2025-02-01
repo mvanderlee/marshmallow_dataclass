@@ -1,11 +1,11 @@
 import itertools
 import sys
 import unittest
-from typing import Optional, Sequence, Set, FrozenSet, Mapping
+from typing import Mapping, Optional, Sequence
 
 import marshmallow
 
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass2 import dataclass
 
 
 class TestSequenceField(unittest.TestCase):
@@ -130,7 +130,7 @@ class TestSetField(unittest.TestCase):
     def test_simple(self):
         @dataclass
         class IntSet:
-            value: Set[int]
+            value: set[int]
 
         schema = IntSet.Schema()
         data_in = {"value": list(range(5))}
@@ -141,7 +141,7 @@ class TestSetField(unittest.TestCase):
     def test_set_no_arg(self):
         @dataclass
         class AnySet:
-            value: Set
+            value: set
 
         schema = AnySet.Schema()
 
@@ -154,7 +154,7 @@ class TestSetField(unittest.TestCase):
     def test_optional_set(self):
         @dataclass
         class IntOptionalSet:
-            value: Optional[Set[int]]
+            value: Optional[set[int]]
 
         schema = IntOptionalSet.Schema()
 
@@ -171,7 +171,7 @@ class TestSetField(unittest.TestCase):
     def test_set_of_optional(self):
         @dataclass
         class OptionalIntSet:
-            value: Set[Optional[int]]
+            value: set[Optional[int]]
 
         schema = OptionalIntSet.Schema()
         for data_in in ({"value": set(range(5))}, {"value": {1, None, 2}}):
@@ -182,7 +182,7 @@ class TestSetField(unittest.TestCase):
     def test_set_only_work_in_hashable_types(self):
         @dataclass
         class SetIntSet:
-            value: Set[Set[int]]
+            value: set[set[int]]
 
         schema = SetIntSet.Schema()
 
@@ -196,7 +196,7 @@ class TestSetField(unittest.TestCase):
 
         @dataclass
         class SetOfDataclass:
-            value: Set[Elm]
+            value: set[Elm]
 
         schema = SetOfDataclass.Schema()
 
@@ -211,7 +211,7 @@ class TestSetField(unittest.TestCase):
 
         @dataclass
         class SetIntSet:
-            value: Set[Elm]
+            value: set[Elm]
 
         schema = SetIntSet.Schema()
         for data_in in (
@@ -231,7 +231,7 @@ class TestSetField(unittest.TestCase):
 
         @dataclass
         class SetIntSet:
-            value: Set[Optional[Elm]]
+            value: set[Optional[Elm]]
 
         schema = SetIntSet.Schema()
         for data_in in (
@@ -244,7 +244,7 @@ class TestSetField(unittest.TestCase):
     def test_frozen_set(self):
         @dataclass
         class IntFrozenSet:
-            value: FrozenSet[int]
+            value: frozenset[int]
 
         schema = IntFrozenSet.Schema()
         data_in = {"value": list(range(5))}
@@ -257,7 +257,7 @@ class TestSetField(unittest.TestCase):
 
         @dataclass
         class SetIntSet:
-            value: FrozenSet[FrozenSet[int]]
+            value: frozenset[frozenset[int]]
 
         schema = SetIntSet.Schema()
         data_in = {

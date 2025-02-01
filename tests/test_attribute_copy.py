@@ -3,7 +3,7 @@ import unittest
 
 import marshmallow.validate
 
-from marshmallow_dataclass import class_schema
+from marshmallow_dataclass2 import class_schema
 
 
 class TestAttributesCopy(unittest.TestCase):

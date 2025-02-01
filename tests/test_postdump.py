@@ -2,7 +2,7 @@ import typing as T
 from dataclasses import field
 
 import marshmallow as mm
-import marshmallow_dataclass as mmdc
+import marshmallow_dataclass2 as mmdc
 import collections.abc
 import unittest
 

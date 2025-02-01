@@ -1,7 +1,7 @@
 import unittest
 from typing import List, Optional
 
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass2 import dataclass
 
 
 @dataclass

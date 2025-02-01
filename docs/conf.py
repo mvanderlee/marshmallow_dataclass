@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
-project = "marshmallow_dataclass"
+project = "marshmallow_dataclass2"
 copyright = "2019, Ophir LOJKINE"
 author = "Ophir LOJKINE"
 
@@ -120,8 +120,8 @@ htmlhelp_basename = "marshmallow_dataclassdoc"
 man_pages = [
     (
         master_doc,
-        "marshmallow_dataclass",
-        "marshmallow_dataclass Documentation",
+        "marshmallow_dataclass2",
+        "marshmallow_dataclass2 Documentation",
         [author],
         1,
     )
@@ -136,10 +136,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "marshmallow_dataclass",
-        "marshmallow_dataclass Documentation",
+        "marshmallow_dataclass2",
+        "marshmallow_dataclass2 Documentation",
         author,
-        "marshmallow_dataclass",
+        "marshmallow_dataclass2",
         "One line description of project.",
         "Miscellaneous",
     )

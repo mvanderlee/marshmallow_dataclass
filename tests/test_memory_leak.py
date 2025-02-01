@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from unittest import mock
 
 import marshmallow
-import marshmallow_dataclass as md
+import marshmallow_dataclass2 as md
 
 
 class Referenceable:
@@ -121,7 +121,7 @@ class TestMemoryLeak(unittest.TestCase):
                 decorator(Foo)
 
         with mock.patch(
-            "marshmallow_dataclass.lazy_class_attribute",
+            "marshmallow_dataclass2.lazy_class_attribute",
             side_effect=Exception("forced exception"),
         ) as m:
             f()

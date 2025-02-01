@@ -1,4 +1,9 @@
-# marshmallow\_dataclass change log
+# marshmallow\_dataclass2 change log
+
+## v8.8.0 (2025-02-01)
+ 
+ - Drop support for python 3.8
+ - Add Generic Type support
 
 ## v8.7.1 (2024-09-12)
 
@@ -171,16 +176,18 @@ You can now write :
 from marshmallow_dataclass import dataclass
 from collections.abc import Sequence, Mapping, Set
 
+
 @dataclass
 class FrozenData:
-   seq: Sequence[int] # like List[int], but immutable 
-   map: Mapping[str, int] # like Dict[str, int], but immutable 
-   set: Set[int] # like List[int], but unordered
+    seq: Sequence[int]  # like List[int], but immutable
+    map: Mapping[str, int]  # like Dict[str, int], but immutable
+    set: Set[int]  # like List[int], but unordered
 
-f: FrozenData = FrozenData.Schema().load({"seq":[1], "map":{"x":2}, "set":[2]})
-print(f.seq[0]) # -> 1
-print(f.map["x"]) # -> 2
-print(2 in f.set) # -> True
+
+f: FrozenData = FrozenData.Schema().load({"seq": [1], "map": {"x": 2}, "set": [2]})
+print(f.seq[0])  # -> 1
+print(f.map["x"])  # -> 2
+print(2 in f.set)  # -> True
 ```
 
 ## v8.3.2
@@ -317,10 +324,12 @@ class Environment:
 ```py
 from marshmallow_dataclass import dataclass
 
+
 @dataclass
 class C:
     def say_hello():
-       print("hello")
+        print("hello")
+
 
 C.Schema.say_hello()
 ```
@@ -330,12 +339,15 @@ C.Schema.say_hello()
 from marshmallow_dataclass import dataclass
 from marshmallow import validates, ValidationError
 
+
 @dataclass
 class C:
     name: str
-    @validates('name')
+
+    @validates("name")
     def validates(self, value):
-        if len(name) > 10: raise ValidationError("name too long")
+        if len(name) > 10:
+            raise ValidationError("name too long")
 ```
 
 ## v6.1.0

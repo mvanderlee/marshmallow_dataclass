@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-VERSION = "8.7.1"
+VERSION = "8.8.0"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -8,7 +8,6 @@ CLASSIFIERS = [
     "Operating System :: OS Independent",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -32,21 +31,21 @@ EXTRAS_REQUIRE["dev"] = (
 )
 
 setup(
-    name="marshmallow_dataclass",
+    name="marshmallow_dataclass2",
     version=VERSION,
     description="Python library to convert dataclasses into marshmallow schemas.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     packages=find_packages(
-        include=["marshmallow_dataclass", "marshmallow_dataclass.*"]
+        include=["marshmallow_dataclass2", "marshmallow_dataclass2.*"]
     ),
-    author="Ophir LOJKINE",
-    author_email="pere.jobs@gmail.com",
-    url="https://github.com/lovasoa/marshmallow_dataclass",
+    author="Ophir LOJKINE, Michiel van der Lee",
+    author_email="jmt.vanderlee@gmail.com",
+    url="https://github.com/mvanderlee/marshmallow_dataclass",
     keywords=["marshmallow", "dataclass", "serialization"],
     classifiers=CLASSIFIERS,
     license="MIT",
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=[
         "marshmallow>=3.18.0,",
         "typing-inspect>=0.9.0",
@@ -55,5 +54,5 @@ setup(
         "typing-extensions>=4.2.0; python_version<'3.11'",
     ],
     extras_require=EXTRAS_REQUIRE,
-    package_data={"marshmallow_dataclass": ["py.typed"]},
+    package_data={"marshmallow_dataclass2": ["py.typed"]},
 )

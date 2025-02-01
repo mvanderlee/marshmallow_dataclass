@@ -1,10 +1,10 @@
 import unittest
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Optional
 
 import marshmallow.validate
 
-import marshmallow_dataclass
+import marshmallow_dataclass2
 
 
 @dataclass
@@ -17,10 +17,10 @@ class Building:
 @dataclass
 class City:
     name: Optional[str]
-    buildings: List[Building] = field(default_factory=list)
+    buildings: list[Building] = field(default_factory=list)
 
 
-CitySchema = marshmallow_dataclass.class_schema(City)()
+CitySchema = marshmallow_dataclass2.class_schema(City)()
 
 
 class TestCityBuildingExample(unittest.TestCase):

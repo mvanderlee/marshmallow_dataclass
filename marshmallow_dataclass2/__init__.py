@@ -7,7 +7,7 @@ It takes a python class, and generates a marshmallow schema for it.
 Simple example::
 
     from marshmallow import Schema
-    from marshmallow_dataclass import dataclass
+    from marshmallow_dataclass2 import dataclass
 
     @dataclass
     class Point:
@@ -21,7 +21,7 @@ Full example::
 
     from marshmallow import Schema
     from dataclasses import field
-    from marshmallow_dataclass import dataclass
+    from marshmallow_dataclass2 import dataclass
     import datetime
 
     @dataclass
@@ -44,15 +44,9 @@ import types
 import warnings
 from enum import Enum
 from functools import lru_cache, partial
+from typing import Annotated, Any, Callable, Dict, FrozenSet, Generic, List, Mapping
+from typing import NewType as typing_NewType
 from typing import (
-    Any,
-    Callable,
-    Dict,
-    FrozenSet,
-    Generic,
-    List,
-    Mapping,
-    NewType as typing_NewType,
     Optional,
     Sequence,
     Set,
@@ -61,6 +55,8 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    get_args,
+    get_origin,
     get_type_hints,
     overload,
 )
@@ -68,17 +64,12 @@ from typing import (
 import marshmallow
 import typing_inspect
 
-from marshmallow_dataclass.generic_resolver import (
+from marshmallow_dataclass2.generic_resolver import (
     UnboundTypeVarError,
     get_generic_dataclass_fields,
     is_generic_alias,
 )
-from marshmallow_dataclass.lazy_class_attribute import lazy_class_attribute
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated, get_args, get_origin
-else:
-    from typing_extensions import Annotated, get_args, get_origin
+from marshmallow_dataclass2.lazy_class_attribute import lazy_class_attribute
 
 if sys.version_info >= (3, 11):
     from typing import dataclass_transform
@@ -88,6 +79,22 @@ else:
 
 __all__ = ["dataclass", "add_schema", "class_schema", "field_for_schema", "NewType"]
 
+CONTAINER_TYPES = (
+    list,
+    List,
+    tuple,
+    Tuple,
+    frozenset,
+    FrozenSet,
+    set,
+    Set,
+    collections.abc.Sequence,
+    Sequence,
+    dict,
+    Dict,
+    collections.abc.Mapping,
+    Mapping,
+)
 NoneType = type(None)
 _U = TypeVar("_U")
 
@@ -689,10 +696,14 @@ def _field_for_container_type(
 
         if origin in (list, List):
             child_type = _field_for_schema(arguments[0], base_schema=base_schema)
-            list_type = cast(
-                Type[marshmallow.fields.List],
-                type_mapping.get(List, marshmallow.fields.List),
-            )
+            # Marshmallow by default sets it to {list: ma_fields.Raw}.
+            # We won't accept this but do want the user to set their own.
+            list_type = type_mapping.get(list, marshmallow.fields.Raw)
+            # Ignore and override to List field
+            if list_type is marshmallow.fields.Raw:
+                list_type = type_mapping.get(List, marshmallow.fields.List)
+
+            list_type = cast(Type[marshmallow.fields.List], list_type)
             return list_type(child_type, **metadata)
         if origin in (collections.abc.Sequence, Sequence) or (
             origin in (tuple, Tuple)
@@ -721,15 +732,30 @@ def _field_for_container_type(
             children = tuple(
                 _field_for_schema(arg, base_schema=base_schema) for arg in arguments
             )
-            tuple_type = cast(
-                Type[marshmallow.fields.Tuple],
-                type_mapping.get(  # type:ignore[call-overload]
-                    Tuple, marshmallow.fields.Tuple
-                ),
-            )
+            # Marshmallow by default sets it to {tuple: ma_fields.Raw}.
+            # We won't accept this but do want the user to set their own.
+            tuple_type = type_mapping.get(tuple, marshmallow.fields.Raw)
+            # Ignore and override to Tuple field
+            if tuple_type is marshmallow.fields.Raw:
+                tuple_type = type_mapping.get(List, marshmallow.fields.Tuple)
+
+            tuple_type = cast(Type[marshmallow.fields.Tuple], tuple_type)
+
             return tuple_type(children, **metadata)
         if origin in (dict, Dict, collections.abc.Mapping, Mapping):
-            dict_type = type_mapping.get(Dict, marshmallow.fields.Dict)
+            dict_type = type_mapping.get(
+                Dict,
+                type_mapping.get(
+                    dict,
+                    type_mapping.get(
+                        collections.abc.Mapping,
+                        type_mapping.get(
+                            Mapping,
+                            marshmallow.fields.Dict,
+                        ),
+                    ),
+                ),
+            )
             return dict_type(
                 keys=_field_for_schema(arguments[0], base_schema=base_schema),
                 values=_field_for_schema(arguments[1], base_schema=base_schema),
@@ -887,9 +913,10 @@ def _field_for_schema(
     typ = _container_type_add_any(typ)
 
     # Base types
-    field = _field_by_type(typ, base_schema)
-    if field:
-        return field(**metadata)
+    if typ not in (CONTAINER_TYPES):
+        field = _field_by_type(typ, base_schema)
+        if field:
+            return field(**metadata)
 
     if typ is Any:
         metadata.setdefault("allow_none", True)
@@ -1038,17 +1065,12 @@ def _get_type_hints(
     obj,
     schema_ctx: _SchemaContext,
 ):
-    if sys.version_info >= (3, 9):
-        type_hints = get_type_hints(
-            obj,
-            globalns=schema_ctx.globalns,
-            localns=schema_ctx.localns,
-            include_extras=True,
-        )
-    else:
-        type_hints = get_type_hints(
-            obj, globalns=schema_ctx.globalns, localns=schema_ctx.localns
-        )
+    type_hints = get_type_hints(
+        obj,
+        globalns=schema_ctx.globalns,
+        localns=schema_ctx.localns,
+        include_extras=True,
+    )
 
     return type_hints
 

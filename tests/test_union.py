@@ -1,11 +1,11 @@
-from dataclasses import field
 import sys
 import unittest
-from typing import List, Optional, Union, Dict
+from dataclasses import field
+from typing import Optional, Union
 
 import marshmallow
 
-from marshmallow_dataclass import dataclass, NewType
+from marshmallow_dataclass2 import NewType, dataclass
 
 
 class TestClassSchema(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestClassSchema(unittest.TestCase):
     def test_list_union_builtin(self):
         @dataclass
         class Dclass2:
-            value: List[Union[int, str]]
+            value: list[Union[int, str]]
 
         schema = Dclass2.Schema()
         data_in = {"value": ["hello", 42]}
@@ -43,7 +43,7 @@ class TestClassSchema(unittest.TestCase):
 
         @dataclass
         class Dclass:
-            value: List[Union[Elm1, Elm2]]
+            value: list[Union[Elm1, Elm2]]
 
         schema = Dclass.Schema()
         data_in = {"value": [{"elm1": "foo"}, {"elm2": "bar"}]}
@@ -62,7 +62,7 @@ class TestClassSchema(unittest.TestCase):
 
         @dataclass
         class TestDataClass:
-            value: Union[List[Elm1], List[Elm2]]
+            value: Union[list[Elm1], list[Elm2]]
 
         schema = TestDataClass.Schema()
 
@@ -87,7 +87,7 @@ class TestClassSchema(unittest.TestCase):
 
         @dataclass
         class Dclass:
-            value: List[Union[List[Union[int, str, Elm1]], int]]
+            value: list[Union[list[Union[int, str, Elm1]], int]]
 
         schema = Dclass.Schema()
         data_in = {"value": [42, ["hello", 13, {"elm1": "foo"}]]}
@@ -99,7 +99,7 @@ class TestClassSchema(unittest.TestCase):
     def test_union_dict(self):
         @dataclass
         class Dclass:
-            value: List[Union[Dict[int, Union[int, str]], Union[int, str]]]
+            value: list[Union[dict[int, Union[int, str]], Union[int, str]]]
 
         schema = Dclass.Schema()
         data_in = {"value": [42, {12: 13, 13: "hello"}, "foo"]}
@@ -116,7 +116,7 @@ class TestClassSchema(unittest.TestCase):
 
         @dataclass
         class Dclass:
-            value: Union[List[int], Dict[str, Elm]]
+            value: Union[list[int], dict[str, Elm]]
 
         schema = Dclass.Schema()
 
@@ -198,11 +198,11 @@ class TestClassSchema(unittest.TestCase):
         self.assertEqual(schema.dump(schema.load(data_in)), data_in)
 
     def test_union_with_generics(self):
-        IntList = NewType("IntList", List[int])
+        IntList = NewType("IntList", list[int])
 
         @dataclass
         class Dclass:
-            value: Union[IntList, List[str]]
+            value: Union[IntList, list[str]]
 
         schema = Dclass.Schema()
 
