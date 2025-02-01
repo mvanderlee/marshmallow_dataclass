@@ -1,5 +1,10 @@
 # marshmallow\_dataclass2 change log
 
+## v8.8.1 (2025-02-01)
+
+ - Update Readme
+ - Fix getting generic schema more than once
+ 
 ## v8.8.0 (2025-02-01)
  
  - Drop support for python 3.8
