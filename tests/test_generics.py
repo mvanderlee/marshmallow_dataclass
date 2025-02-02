@@ -150,6 +150,18 @@ class TestGenerics(unittest.TestCase):
         with self.assertRaises(ValidationError):
             schema_nested.load({"data2": {"data1": "str"}})
 
+        schema_nested = NestedFixed.Schema()
+        self.assertEqual(
+            NestedFixed(data2=SimpleGeneric(1)),
+            schema_nested.load({"data2": {"data1": 1}}),
+        )
+        self.assertEqual(
+            schema_nested.dump(NestedFixed(data2=SimpleGeneric(data1=1))),
+            {"data2": {"data1": 1}},
+        )
+        with self.assertRaises(ValidationError):
+            schema_nested.load({"data2": {"data1": "str"}})
+
         schema_nested_generic = class_schema(NestedGeneric[int])()
         self.assertEqual(
             NestedGeneric(data3=SimpleGeneric(1)),
@@ -174,6 +186,9 @@ class TestGenerics(unittest.TestCase):
         )
         with self.assertRaises(ValidationError):
             schema_nested_generic.load({"data3": {"data1": "str"}})
+
+        with self.assertRaisesRegex(TypeError, "generic"):
+            NestedGeneric.Schema()
 
     def test_generic_dataclass_repeated_fields(self):
         T = typing.TypeVar("T")
@@ -229,6 +244,26 @@ class TestGenerics(unittest.TestCase):
 
         with self.assertRaisesRegex(TypeError, "generic"):
             add_schema(GenClass[int])
+
+    def test_schema_raises_on_generic(self):
+        """
+        We can't support `GenClass[int].Schema` because the class function was created on `GenClass`
+        Therefore the function does not know about the `int` type.
+        This is a Python limitation, not a marshmallow_dataclass limitation.
+        """
+        import marshmallow_dataclass
+
+        T = typing.TypeVar("T")
+
+        @marshmallow_dataclass.dataclass
+        class GenClass(typing.Generic[T]):
+            pass
+
+        with self.assertRaisesRegex(TypeError, "generic"):
+            GenClass.Schema()
+
+        with self.assertRaisesRegex(TypeError, "generic"):
+            GenClass[int].Schema()
 
     def test_deep_generic(self):
         T = typing.TypeVar("T")
@@ -347,6 +382,19 @@ class TestGenerics(unittest.TestCase):
         T = typing.TypeVar("T")
 
         @dataclasses.dataclass
+        class Base:
+            answer: T  # type: ignore[valid-type]
+
+        with self.assertRaises(UnboundTypeVarError):
+            class_schema(Base)
+
+        with self.assertRaises(TypeError):
+            class_schema(Base)
+
+    def test_marshmallow_dataclass_unbound_type_var(self) -> None:
+        T = typing.TypeVar("T")
+
+        @dataclass
         class Base:
             answer: T  # type: ignore[valid-type]
 
