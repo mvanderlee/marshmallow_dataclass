@@ -1,5 +1,9 @@
 # marshmallow\_dataclass2 change log
 
+## v8.82 (2025-02-02)
+
+ - Fix Generic.Schema() now throws a TypeError. Python does not allow access to the generic alias, so the user must call `class_schema(...)` themselves
+
 ## v8.8.1 (2025-02-01)
 
  - Update Readme

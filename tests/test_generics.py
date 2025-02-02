@@ -3,7 +3,6 @@ import inspect
 import sys
 import typing
 import unittest
-from typing import Annotated
 
 import marshmallow.fields
 import pytest
@@ -17,6 +16,11 @@ from marshmallow_dataclass2 import (
     dataclass,
     is_generic_alias_of_dataclass,
 )
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+else:
+    from typing_extensions import Annotated
 
 
 def get_orig_class(obj):
@@ -146,6 +150,18 @@ class TestGenerics(unittest.TestCase):
         with self.assertRaises(ValidationError):
             schema_nested.load({"data2": {"data1": "str"}})
 
+        schema_nested = NestedFixed.Schema()
+        self.assertEqual(
+            NestedFixed(data2=SimpleGeneric(1)),
+            schema_nested.load({"data2": {"data1": 1}}),
+        )
+        self.assertEqual(
+            schema_nested.dump(NestedFixed(data2=SimpleGeneric(data1=1))),
+            {"data2": {"data1": 1}},
+        )
+        with self.assertRaises(ValidationError):
+            schema_nested.load({"data2": {"data1": "str"}})
+
         schema_nested_generic = class_schema(NestedGeneric[int])()
         self.assertEqual(
             NestedGeneric(data3=SimpleGeneric(1)),
@@ -170,6 +186,9 @@ class TestGenerics(unittest.TestCase):
         )
         with self.assertRaises(ValidationError):
             schema_nested_generic.load({"data3": {"data1": "str"}})
+
+        with self.assertRaisesRegex(TypeError, "generic"):
+            NestedGeneric.Schema()
 
     def test_generic_dataclass_repeated_fields(self):
         T = typing.TypeVar("T")
@@ -202,7 +221,6 @@ class TestGenerics(unittest.TestCase):
         Therefore the function does not know about the `int` type.
         This is a Python limitation, not a marshmallow_dataclass limitation.
         """
-        import marshmallow_dataclass2
 
         T = typing.TypeVar("T")
 
@@ -210,7 +228,7 @@ class TestGenerics(unittest.TestCase):
             pass
 
         with self.assertRaisesRegex(TypeError, "generic"):
-            marshmallow_dataclass2.dataclass(GenClass[int])
+            dataclass(GenClass[int])
 
     def test_add_schema_raises_on_generic_alias(self):
         """
@@ -226,21 +244,25 @@ class TestGenerics(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, "generic"):
             add_schema(GenClass[int])
 
-    def test_deep_generic(self):
+    def test_schema_raises_on_generic(self):
+        """
+        We can't support `GenClass[int].Schema` because the class function was created on `GenClass`
+        Therefore the function does not know about the `int` type.
+        This is a Python limitation, not a marshmallow_dataclass limitation.
+        """
         T = typing.TypeVar("T")
-        U = typing.TypeVar("U")
 
-        @dataclasses.dataclass
-        class TestClass(typing.Generic[T, U]):
-            pairs: list[tuple[T, U]]
+        @dataclass
+        class GenClass(typing.Generic[T]):
+            pass
 
-        test_schema = class_schema(TestClass[str, int])()
+        with self.assertRaisesRegex(TypeError, "generic"):
+            GenClass.Schema()
 
-        self.assertEqual(
-            test_schema.load({"pairs": [("first", "1")]}), TestClass([("first", 1)])
-        )
+        with self.assertRaisesRegex(TypeError, "generic"):
+            GenClass[int].Schema()
 
-    def test_deep_generic_typing(self):
+    def test_deep_generic(self):
         T = typing.TypeVar("T")
         U = typing.TypeVar("U")
 
@@ -254,13 +276,30 @@ class TestGenerics(unittest.TestCase):
             test_schema.load({"pairs": [("first", "1")]}), TestClass([("first", 1)])
         )
 
+    @pytest.mark.skipif(
+        sys.version_info < (3, 9), reason="requires python 3.9 or higher"
+    )
+    def test_deep_generic_native(self):
+        T = typing.TypeVar("T")
+        U = typing.TypeVar("U")
+
+        @dataclasses.dataclass
+        class TestClass(typing.Generic[T, U]):
+            pairs: list[tuple[T, U]]
+
+        test_schema = class_schema(TestClass[str, int])()
+
+        self.assertEqual(
+            test_schema.load({"pairs": [("first", "1")]}), TestClass([("first", 1)])
+        )
+
     def test_deep_generic_with_union(self):
         T = typing.TypeVar("T")
         U = typing.TypeVar("U")
 
         @dataclasses.dataclass
         class TestClass(typing.Generic[T, U]):
-            either: list[typing.Union[T, U]]
+            either: typing.List[typing.Union[T, U]]
 
         test_schema = class_schema(TestClass[str, int])()
 
@@ -276,7 +315,7 @@ class TestGenerics(unittest.TestCase):
 
         @dataclasses.dataclass
         class TestClass(typing.Generic[T, U, V]):
-            pairs: list[tuple[T, U]]
+            pairs: typing.List[typing.Tuple[T, U]]
             gen: V
             override: int
 
@@ -290,7 +329,7 @@ class TestGenerics(unittest.TestCase):
 
         # inherit from alias
         @dataclasses.dataclass
-        class TestClass3(TestAlias[list[int]]):  # type: ignore[override]
+        class TestClass3(TestAlias[typing.List[int]]):  # type: ignore[override]
             pass
 
         test_schema = class_schema(TestClass3)()
@@ -349,6 +388,19 @@ class TestGenerics(unittest.TestCase):
         with self.assertRaises(TypeError):
             class_schema(Base)
 
+    def test_marshmallow_dataclass_unbound_type_var(self) -> None:
+        T = typing.TypeVar("T")
+
+        @dataclass
+        class Base:
+            answer: T  # type: ignore[valid-type]
+
+        with self.assertRaises(UnboundTypeVarError):
+            class_schema(Base)
+
+        with self.assertRaises(TypeError):
+            class_schema(Base)
+
     def test_annotated_generic_mf_field(self) -> None:
         T = typing.TypeVar("T")
 
@@ -368,9 +420,9 @@ class TestGenerics(unittest.TestCase):
 
         @dataclass
         class AnnotatedValue:
-            emails: Annotated[list[str], GenericList[marshmallow.fields.Email]] = (
-                dataclasses.field(default_factory=lambda: ["default@email.com"])
-            )
+            emails: Annotated[
+                typing.List[str], GenericList[marshmallow.fields.Email]
+            ] = dataclasses.field(default_factory=lambda: ["default@email.com"])
 
         schema = AnnotatedValue.Schema()  # type: ignore[attr-defined]
 
@@ -419,7 +471,7 @@ class TestGenerics(unittest.TestCase):
             schema_s.load({"data": 2})
 
     @pytest.mark.skipif(
-        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+        sys.version_info < (3, 13), reason="requires python 3.13 or higher"
     )
     def test_generic_default(self):
         T = typing.TypeVar("T", default=str)
@@ -470,7 +522,7 @@ class TestGenerics(unittest.TestCase):
             schema_nested_generic.load({"data": {"data": "str"}})
 
     @pytest.mark.skipif(
-        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+        sys.version_info < (3, 13), reason="requires python 3.13 or higher"
     )
     def test_deep_generic_with_default_overrides(self):
         T = typing.TypeVar("T", default=bool)
@@ -480,7 +532,7 @@ class TestGenerics(unittest.TestCase):
 
         @dataclasses.dataclass
         class TestClass(typing.Generic[T, U, V]):
-            pairs: list[tuple[T, U]]
+            pairs: typing.List[typing.Tuple[T, U]]
             gen: V
             override: int
 
@@ -525,7 +577,7 @@ class TestGenerics(unittest.TestCase):
 
         # inherit from alias
         @dataclasses.dataclass
-        class TestClass3(TestAlias[list[int]]):  # type: ignore[override]
+        class TestClass3(TestAlias[typing.List[int]]):  # type: ignore[override]
             pass
 
         test_schema3 = class_schema(TestClass3)()
@@ -553,7 +605,7 @@ class TestGenerics(unittest.TestCase):
         )
 
     @pytest.mark.skipif(
-        sys.version_info <= (3, 13), reason="requires python 3.13 or higher"
+        sys.version_info < (3, 13), reason="requires python 3.13 or higher"
     )
     def test_generic_default_recursion(self):
         T = typing.TypeVar("T", default=str)

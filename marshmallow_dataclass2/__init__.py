@@ -114,6 +114,28 @@ class LazyGenericSchema:
 
         self.__resolved_generic_schemas = {}
 
+    def __call__(self):
+        """This get's called via `.Schema()`"""
+        # A .Schema attribute doesn't make sense on a generic alias — there's
+        # no way for it to know the generic parameters at run time.
+        raise TypeError(
+            "decorator does not support generic aliases "
+            "(hint: use class_schema directly instead)"
+        )
+
+    def __get__(self, instance, cls=None):
+        # I haven't found a better way, but `inspect.getmember ` causes this function to be called with
+        # the __origin__ as second arg. This solutions seems to work best.
+        if instance is None and cls is not None:
+            return self
+
+        # A .Schema attribute doesn't make sense on a generic alias — there's
+        # no way for it to know the generic parameters at run time.
+        raise TypeError(
+            "decorator does not support generic aliases "
+            "(hint: use class_schema directly instead)"
+        )
+
     def get_schema(self, instance):
         instance_args = get_args(instance)
         schema = self.__resolved_generic_schemas.get(instance_args)
